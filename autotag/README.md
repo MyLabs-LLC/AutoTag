@@ -1,0 +1,56 @@
+# AutoTag package
+
+Two labels on a document:
+
+- **Industry**, one name from the sixteen industries in `labels.py`, or
+  `other` when the score is below the threshold.
+- **Document type**, one of ten: invoice, receipt, contract, policy, report,
+  letter, email, memo, specification, financial_statement. One best label, or
+  `other` when the score is below the threshold.
+
+The project README at the repository root is the full description.
+
+The CPU model is `xxparthparekhxx/openjev-flash` (about 150M). If that
+checkpoint does not load, the accuracy command tries
+`RazvanManolache/raz-systemone-nli-xsmall-openjev` (71M). Both are entailment
+models: they score a hypothesis, they do not generate a new sentence. Each
+industry and each document type is one yes/no question. The model scores the
+statement form of that question (the answer yes). The score is P(entailment).
+It is not renormalized across labels, so a weak best label can abstain.
+
+## Run the stub
+
+From the repository root, standard library only:
+
+```bash
+python -m autotag classify autotag/fixtures/hospital_invoice.txt
+python -m autotag cluster autotag/fixtures
+python -m autotag.selfcheck
+```
+
+## Run OpenJev on CPU
+
+Install notes are in `requirements-openjev.txt`.
+
+```bash
+uv venv autotag/.venv --python 3.12
+uv pip install --python autotag/.venv/bin/python torch --index-url https://download.pytorch.org/whl/cpu
+uv pip install --python autotag/.venv/bin/python -r autotag/requirements-openjev.txt
+autotag/.venv/bin/python -m autotag accuracy
+```
+
+`autotag/measurements/cpu-accuracy.json` is the record of that run.
+`autotag/fixtures/intent.json` is the document type each sample was written
+as. Matching it is a fixture check. It is not agreement with a person or
+with a large language model.
+
+## Layout
+
+| Path | Role |
+|---|---|
+| `labels.py` | Sixteen industries and ten document types, one question each |
+| `classify.py` | Stub backend and the one-label-or-abstain rule |
+| `openjev_backend.py` | CPU OpenJev entailment |
+| `accuracy.py` | Fixture run, timing, and peak RSS |
+| `cluster.py` | Lexical clustering from the first exploration |
+| `fixtures/` | Plain-text samples and `intent.json` |

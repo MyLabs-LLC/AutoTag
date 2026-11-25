@@ -1,0 +1,14 @@
+# Runtime packages for the OpenJev CPU backend. Torch is installed first from
+# the CPU index so a later install of this file does not replace it with a
+# CUDA wheel:
+#
+#   uv venv autotag/.venv --python 3.12
+#   uv pip install --python autotag/.venv/bin/python torch --index-url https://download.pytorch.org/whl/cpu
+#   uv pip install --python autotag/.venv/bin/python -r autotag/requirements-openjev.txt
+#
+# Then, from the repository root:
+#
+#   autotag/.venv/bin/python -m autotag accuracy
+
+transformers>=4.57
+huggingface_hub>=0.26

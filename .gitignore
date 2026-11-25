@@ -221,3 +221,11 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Downloaded model weights and hub caches. Not part of this repo.
+*.safetensors
+*.gguf
+*.onnx
+*.pt
+*.pth
+models/
