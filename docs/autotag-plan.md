@@ -96,9 +96,10 @@ On this process, with the weights already cached: load 2.9 s, then about 0.17–
 
 ## How to run it again
 
+The model path is Python 3.14 and PyTorch 2.14.1. `.python-version` selects 3.14. The requirements file installs the CPU wheel `torch==2.14.1+cpu`. `OpenJevBackend.load` refuses any other interpreter or torch version.
+
 ```bash
-uv venv autotag/.venv --python 3.12
-uv pip install --python autotag/.venv/bin/python torch --index-url https://download.pytorch.org/whl/cpu
+uv venv autotag/.venv --python 3.14
 uv pip install --python autotag/.venv/bin/python -r autotag/requirements-openjev.txt
 autotag/.venv/bin/python -m autotag accuracy
 ```

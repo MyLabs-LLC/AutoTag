@@ -63,11 +63,10 @@ The default backend is a deterministic lexicon (`stub`) so the commands run with
 
 ## Run OpenJev-flash on CPU
 
-`torch` and `transformers` are not installed by a project lockfile. Create a virtualenv and install the CPU wheel first. See `autotag/requirements-openjev.txt`.
+The model path requires **Python 3.14** and **PyTorch 2.14.1**. `.python-version` pins the interpreter. `autotag/requirements-openjev.txt` pins the CPU wheel, whose version string is `2.14.1+cpu`. Loading the checkpoint on any other Python or PyTorch version stops with an error.
 
 ```bash
-uv venv autotag/.venv --python 3.12
-uv pip install --python autotag/.venv/bin/python torch --index-url https://download.pytorch.org/whl/cpu
+uv venv autotag/.venv --python 3.14
 uv pip install --python autotag/.venv/bin/python -r autotag/requirements-openjev.txt
 autotag/.venv/bin/python -m autotag accuracy
 ```

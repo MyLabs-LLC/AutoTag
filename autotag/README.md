@@ -33,8 +33,7 @@ python -m autotag.selfcheck
 Install notes are in `requirements-openjev.txt`.
 
 ```bash
-uv venv autotag/.venv --python 3.12
-uv pip install --python autotag/.venv/bin/python torch --index-url https://download.pytorch.org/whl/cpu
+uv venv autotag/.venv --python 3.14
 uv pip install --python autotag/.venv/bin/python -r autotag/requirements-openjev.txt
 autotag/.venv/bin/python -m autotag accuracy
 ```

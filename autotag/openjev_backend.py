@@ -8,6 +8,7 @@ into a separate environment. They are not Axion training dependencies.
 from __future__ import annotations
 
 import os
+import sys
 from typing import Any
 
 from autotag.classify import DEFAULT_THRESHOLD, _classification
@@ -40,6 +41,8 @@ class OpenJevBackend:
             return
         import torch
         from transformers import AutoModelForSequenceClassification, AutoTokenizer
+
+        _require_runtime(torch.__version__)
 
         threads = os.cpu_count() or 1
         torch.set_num_threads(threads)
@@ -92,6 +95,16 @@ class OpenJevBackend:
         probabilities = self.entail(text, [hypotheses[label_id] for label_id in ordered])
         scores = dict(zip(ordered, probabilities))
         return _classification("doc_type", scores, threshold, self.name, doc_type_names())
+
+
+def _require_runtime(torch_version: str) -> None:
+    """OpenJev runs on Python 3.14 and PyTorch 2.14.1. The CPU wheel reports 2.14.1+cpu."""
+    running = f"{sys.version_info.major}.{sys.version_info.minor}"
+    if sys.version_info[:2] != (3, 14):
+        raise RuntimeError(f"AutoTag requires Python 3.14. This interpreter is {running}.")
+    base = torch_version.split("+", 1)[0]
+    if base != "2.14.1":
+        raise RuntimeError(f"AutoTag requires PyTorch 2.14.1. Installed torch is {torch_version}.")
 
 
 def _entailment_index(config: Any) -> int:
