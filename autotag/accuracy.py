@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import resource
+import sys
 import time
 from pathlib import Path
 
@@ -21,8 +22,9 @@ DEFAULT_OUTPUT = Path(__file__).resolve().parent / "measurements" / "cpu-accurac
 
 
 def _rss_mb() -> float:
-    # Linux: ru_maxrss is kilobytes.
-    return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024.0
+    # ru_maxrss is bytes on macOS and kilobytes on Linux.
+    per_mb = 1024.0 * 1024.0 if sys.platform == "darwin" else 1024.0
+    return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / per_mb
 
 
 def _load_backend() -> tuple[OpenJevBackend, str | None, float, float]:
