@@ -98,7 +98,10 @@ class OpenJevBackend:
 
 
 def _require_runtime(torch_version: str) -> None:
-    """OpenJev runs on Python 3.14 and PyTorch 2.14.1. The CPU wheel reports 2.14.1+cpu."""
+    """OpenJev runs on Python 3.14 and PyTorch 2.14.1.
+
+    The Linux and Windows CPU wheel reports 2.14.1+cpu. The macOS wheel reports 2.14.1.
+    """
     running = f"{sys.version_info.major}.{sys.version_info.minor}"
     if sys.version_info[:2] != (3, 14):
         raise RuntimeError(f"AutoTag requires Python 3.14. This interpreter is {running}.")

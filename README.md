@@ -63,7 +63,7 @@ The default backend is a deterministic lexicon (`stub`) so the commands run with
 
 ## Run OpenJev-flash on CPU
 
-The model path requires **Python 3.14** and **PyTorch 2.14.1**. `.python-version` pins the interpreter. `autotag/requirements-openjev.txt` pins the CPU wheel, whose version string is `2.14.1+cpu`. Loading the checkpoint on any other Python or PyTorch version stops with an error.
+The model path requires **Python 3.14** and **PyTorch 2.14.1**. `.python-version` pins the interpreter. `autotag/requirements-openjev.txt` pins the CPU wheel on Linux and Windows (`2.14.1+cpu`). macOS has no `+cpu` wheel, so Apple Silicon installs PyPI's `2.14.1` build. Loading the checkpoint on any other Python or PyTorch version stops with an error.
 
 ```bash
 uv venv autotag/.venv --python 3.14

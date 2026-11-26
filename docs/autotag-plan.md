@@ -96,7 +96,7 @@ On this process, with the weights already cached: load 2.9 s, then about 0.17–
 
 ## How to run it again
 
-The model path is Python 3.14 and PyTorch 2.14.1. `.python-version` selects 3.14. The requirements file installs the CPU wheel `torch==2.14.1+cpu`. `OpenJevBackend.load` refuses any other interpreter or torch version.
+The model path is Python 3.14 and PyTorch 2.14.1. `.python-version` selects 3.14. The requirements file installs the CPU wheel `torch==2.14.1+cpu` on Linux and Windows. Apple Silicon installs PyPI's `torch==2.14.1` wheel, because the CPU index publishes no macOS build. `OpenJevBackend.load` refuses any other interpreter or torch version. The check compares the version before the `+` suffix, so both `2.14.1` and `2.14.1+cpu` pass.
 
 ```bash
 uv venv autotag/.venv --python 3.14

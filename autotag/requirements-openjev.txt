@@ -1,4 +1,8 @@
-# Python 3.14 and PyTorch 2.14.1, CPU build. The wheel version is 2.14.1+cpu.
+# Python 3.14 and PyTorch 2.14.1.
+# Linux and Windows use the CPU wheel from the PyTorch CPU index. Its version
+# string is 2.14.1+cpu. That index has no macOS wheels. Apple Silicon gets
+# the PyPI build, whose version string is 2.14.1. OpenJevBackend accepts both.
+#
 # Create the environment from the repository root:
 #
 #   uv venv autotag/.venv --python 3.14
@@ -6,6 +10,10 @@
 #   autotag/.venv/bin/python -m autotag accuracy
 
 --extra-index-url https://download.pytorch.org/whl/cpu
-torch==2.14.1+cpu
+
+# cp314, macOS 14+ arm64. files.pythonhosted.org path is content-addressed.
+torch @ https://files.pythonhosted.org/packages/43/19/23a1aed488423a5055727256b25406e4b93bd2bcf1352bef582b9951c10c/torch-2.14.1-cp314-cp314-macosx_14_0_arm64.whl ; sys_platform == "darwin" and platform_machine == "arm64"
+torch==2.14.1+cpu ; sys_platform != "darwin"
+
 transformers>=4.57
 huggingface_hub>=0.26
