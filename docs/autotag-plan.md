@@ -71,7 +71,7 @@ The names are everyday words. The list is not NAICS, and a SaaS document is not 
 | quote | Is this document a price quote or an estimate for work or goods? |
 | article | Is this document a news article or a magazine article written for readers? |
 
-Industry is scored first, then document type, on the same text. Document type does not depend on the industry label. The premise sent to the model is the first 4,000 characters. The fixtures are shorter than that, so the cap does not change them. It is there for longer files, where the jevos guide says the type is visible at the start and the rest of the file buries it.
+Industry is scored first, then document type, on the same text. Document type does not depend on the industry label. The premise sent to the model is the first 16 KiB of extracted text. The fixtures are shorter than that, so the cap does not change them. It is there for longer files, where the jevos guide says the type is visible at the start and the rest of the file buries it.
 
 ## What the 2024–2026 sources say, and what this repo uses
 
@@ -139,7 +139,7 @@ The model path is Python 3.14 and PyTorch 2.14.1. `.python-version` selects 3.14
 ```bash
 uv venv autotag/.venv --python 3.14
 uv pip install --python autotag/.venv/bin/python -r autotag/requirements-openjev.txt
-autotag/.venv/bin/python -m autotag accuracy
+autotag/.venv/bin/python -m autotag
 ```
 
-`python -m autotag.selfcheck` uses the lexicon stub and does not load the checkpoint.
+`python -m autotag` is the only run command. `--model` chooses `stub`, `openjev-flash`, `openjev-71m`, `all`, or a Hugging Face id. `--dataset` chooses `fixtures`, `all`, a directory of `.txt` files, or one file. The default is every model on every dataset, and the record is `autotag/measurements/run.json`. `python -m autotag.selfcheck` uses the lexicon stub and does not load the checkpoint.

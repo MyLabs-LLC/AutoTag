@@ -67,6 +67,13 @@ _FLOOR = 0.02
 DEFAULT_THRESHOLD = 0.5
 
 
+def _phrases(label_id: str) -> tuple[str, ...]:
+    listed = _STUB_PHRASES.get(label_id)
+    if listed:
+        return listed
+    return (label_id.replace("_", " "),)
+
+
 class Tagger(Protocol):
     name: str
 
@@ -74,7 +81,7 @@ class Tagger(Protocol):
         """One industry from the closed list, or abstain."""
 
     def classify_doc_type(self, text: str, threshold: float) -> Classification:
-        """One of the ten document types, or abstain."""
+        """One document type from the closed list, or abstain."""
 
 
 @dataclass(frozen=True)
@@ -169,12 +176,12 @@ class StubBackend:
     name = "stub"
 
     def propose_industry(self, text: str, threshold: float = DEFAULT_THRESHOLD) -> Classification:
-        scores = {label.id: _phrase_score(text, _STUB_PHRASES[label.id]) for label in INDUSTRIES}
+        scores = {label.id: _phrase_score(text, _phrases(label.id)) for label in INDUSTRIES}
         names = {label.id: label.name for label in INDUSTRIES}
         return _classification("industry", scores, threshold, self.name, names)
 
     def classify_doc_type(self, text: str, threshold: float = DEFAULT_THRESHOLD) -> Classification:
-        scores = {label.id: _phrase_score(text, _STUB_PHRASES[label.id]) for label in DOC_TYPES}
+        scores = {label.id: _phrase_score(text, _phrases(label.id)) for label in DOC_TYPES}
         names = {label.id: label.name for label in DOC_TYPES}
         return _classification("doc_type", scores, threshold, self.name, names)
 

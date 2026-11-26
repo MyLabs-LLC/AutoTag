@@ -232,3 +232,10 @@ models/
 
 # macOS Finder metadata
 .DS_Store
+
+# Local secrets. Never commit.
+.env
+
+# Run transcripts and the generated JSON record.
+/output/
+autotag/measurements/run.json

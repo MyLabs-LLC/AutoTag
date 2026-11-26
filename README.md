@@ -3,7 +3,7 @@
 AutoTag reads a plain-text document and assigns two labels:
 
 - **Industry.** One of twenty-eight everyday industry names, or `other`.
-- **Document type.** One of twenty document types, or `other`.
+- **Document type.** One name from the document-type list, or no type when the score is below 0.5. The list is the original twenty plus the types that appear in the cluster corpus.
 
 Each label is a separate yes/no question. The score is how strongly the text entails the “yes” form of that question. The best score wins. If it is below **0.5**, the label is `other`. Scores are not forced to add up to 1, so abstaining is possible on both axes. Industry is chosen from the list below. The model does not invent a phrase from the page.
 
@@ -71,28 +71,38 @@ One question each: “Is this document mainly about the {name} industry ({gloss}
 | quote | Is this document a price quote or an estimate for work or goods? |
 | article | Is this document a news article or a magazine article written for readers? |
 
-## Run without the model
+## Run
 
-From this repository root, with the standard library only:
+One command scores every selected model on every selected dataset. With no flags it runs all of them: `stub`, `openjev-flash`, `openjev-71m`, and `gemini-4-hydrogen`, on every dataset (`fixtures`, plus any directory of `.txt` files under `autotag/datasets/`). Gemini 4 Hydrogen and Hugging Face downloads use the keys in `.env`.
 
 ```bash
-python -m autotag classify autotag/fixtures/hospital_invoice.txt
-python -m autotag cluster autotag/fixtures
-python -m autotag.selfcheck
+python -m autotag
 ```
 
-The default backend is a deterministic lexicon (`stub`) so the commands run with no download. Stub scores are not the OpenJev numbers in the plan.
+The same command is the control surface. Name a model, a dataset, or both:
 
-## Run OpenJev-flash on CPU
+```bash
+python -m autotag --model stub --dataset fixtures
+python -m autotag --model openjev-flash --dataset fixtures
+python -m autotag --model stub,openjev-flash --dataset fixtures
+python -m autotag --model all --dataset autotag/fixtures/hospital_invoice.txt
+python -m autotag --model stub --dataset ../data/v0.6.3_cluster_files -r
+```
+
+`--model` accepts `stub`, `openjev-flash`, `openjev-71m`, `all`, or a Hugging Face model id. `--dataset` accepts `fixtures`, `all`, a directory of documents, or one document. `-r` reads subdirectories. The model sees the first 16 KiB of each file. PDF, Word, Excel, PowerPoint, RTF, HTML, XML, JSON, and CSV are read with Kreuzberg. `--threshold` defaults to 0.5. The JSON record is `autotag/measurements/run.json` unless `--output` says otherwise.
+
+`stub` is a deterministic lexicon and needs no download. Its scores are not the OpenJev numbers in the plan. OpenJev models need the environment below. A model that fails to load is recorded in the JSON, and the command continues with the other models.
+
+## Run OpenJev on CPU
 
 The model path requires **Python 3.14** and **PyTorch 2.14.1**. `.python-version` pins the interpreter. `autotag/requirements-openjev.txt` pins the CPU wheel on Linux and Windows (`2.14.1+cpu`). macOS has no `+cpu` wheel, so Apple Silicon installs PyPI's `2.14.1` build. Loading the checkpoint on any other Python or PyTorch version stops with an error.
 
 ```bash
 uv venv autotag/.venv --python 3.14
 uv pip install --python autotag/.venv/bin/python -r autotag/requirements-openjev.txt
-autotag/.venv/bin/python -m autotag accuracy
+autotag/.venv/bin/python -m autotag
 ```
 
-That command classifies every file in `autotag/fixtures/` and rewrites `autotag/measurements/cpu-accuracy.json`. Weights download into the Hugging Face cache. Do not commit the virtualenv or the weights.
+That command classifies every selected dataset and writes `autotag/measurements/run.json`. Weights download into the Hugging Face cache. Do not commit the virtualenv or the weights. `python -m autotag.selfcheck` still checks the stub lexicon and does not load a checkpoint.
 
 On the recorded CPU run (Python 3.14, PyTorch 2.14.1+cpu, float32, threshold 0.5), eight documents receive an industry (`healthcare`, or `software` for the SaaS agreement). The grocery note, the lab-results email, and the nursing memo abstain. Document type matches the fixture file on 10 of 11. The income statement is labeled `specification` (0.903) over `financial_statement` (0.731). That count is not agreement with a person or a large language model. The full table is in the plan.

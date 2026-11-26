@@ -18,38 +18,46 @@ industry and each document type is one yes/no question. The model scores the
 statement form of that question (the answer yes). The score is P(entailment).
 It is not renormalized across labels, so a weak best label can abstain.
 
-## Run the stub
+## Run
 
-From the repository root, standard library only:
+From the repository root, one command controls every model and dataset:
 
 ```bash
-python -m autotag classify autotag/fixtures/hospital_invoice.txt
-python -m autotag cluster autotag/fixtures
-python -m autotag.selfcheck
+python -m autotag
+python -m autotag --model stub --dataset fixtures
+python -m autotag --model stub --dataset fixtures --rand 100 --seed 77
 ```
 
-## Run OpenJev on CPU
+`--model` is `stub`, `openjev-flash`, `openjev-71m`, `gemini-4-hydrogen`, `all`, or a Hugging Face
+id. `--dataset` is `fixtures`, `all`, a directory of documents, or one
+document. `-r` reads subdirectories. The model sees the first 16 KiB of each
+file. Directories added under `autotag/datasets/` join `all`.
+The JSON record is `autotag/measurements/run.json`. The transcript is
+`output/YYMMDD_HHMMSS_<model>_run.txt`. `--rand N` scores N random
+documents. `--seed` repeats that choice.
 
-Install notes are in `requirements-openjev.txt`.
+`stub` needs only the standard library. OpenJev needs the environment in
+`requirements-openjev.txt`:
 
 ```bash
 uv venv autotag/.venv --python 3.14
 uv pip install --python autotag/.venv/bin/python -r autotag/requirements-openjev.txt
-autotag/.venv/bin/python -m autotag accuracy
+autotag/.venv/bin/python -m autotag
 ```
 
-`autotag/measurements/cpu-accuracy.json` is the record of that run.
 `autotag/fixtures/intent.json` is the document type each sample was written
 as. Matching it is a fixture check. It is not agreement with a person or
-with a large language model.
+with a large language model. `python -m autotag.selfcheck` checks the stub
+and does not load a checkpoint.
 
 ## Layout
 
 | Path | Role |
 |---|---|
-| `labels.py` | Sixteen industries and ten document types, one question each |
+| `labels.py` | Industries and document types, one question each |
 | `classify.py` | Stub backend and the one-label-or-abstain rule |
 | `openjev_backend.py` | CPU OpenJev entailment |
-| `accuracy.py` | Fixture run, timing, and peak RSS |
+| `catalog.py` | Model and dataset names the command accepts |
+| `accuracy.py` | Scores each selected model on each selected dataset |
 | `cluster.py` | Lexical clustering from the first exploration |
 | `fixtures/` | Plain-text samples and `intent.json` |

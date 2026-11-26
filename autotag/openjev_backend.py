@@ -1,5 +1,6 @@
-"""CPU entailment with a small OpenJev checkpoint.
+"""Entailment with a small OpenJev checkpoint.
 
+The default device is CUDA on Linux and MPS on Mac. `--cpu` forces the CPU.
 torch and transformers are imported inside `load` so the stub path stays
 on the standard library. Install them from autotag/requirements-openjev.txt
 into a separate environment. They are not Axion training dependencies.
@@ -19,17 +20,24 @@ FALLBACK_MODEL = "RazvanManolache/raz-systemone-nli-xsmall-openjev"
 MAX_LENGTH = 512
 BATCH = 8
 # jevos document-classification guide: the type is announced on the first page.
-# Keep a short premise so later clauses do not bury that signal.
-PREMISE_CHARS = 4000
+# The model reads the first 16 KiB and ignores the rest of the file.
+PREMISE_CHARS = 16 * 1024
 
 
 class OpenJevBackend:
     """Score hypotheses with P(entailment). Scores are not renormalized across labels."""
 
-    def __init__(self, model_id: str = PREFERRED_MODEL, revision: str | None = None) -> None:
+    def __init__(
+        self,
+        model_id: str = PREFERRED_MODEL,
+        revision: str | None = None,
+        cpu: bool = False,
+    ) -> None:
         self.model_id = model_id
         self.revision = revision or ""
+        self.cpu = cpu
         self.device = "cpu"
+        self.device_note = ""
         self.dtype = "float32"
         self._model: Any = None
         self._tokenizer: Any = None
@@ -42,6 +50,9 @@ class OpenJevBackend:
     def load(self) -> None:
         if self._model is not None:
             return
+        from autotag.env import load_env
+
+        load_env()
         import torch
         from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
@@ -50,15 +61,20 @@ class OpenJevBackend:
         threads = os.cpu_count() or 1
         torch.set_num_threads(threads)
         self.threads = threads
+        self.device, self.device_note = _select_device(torch, self.cpu)
         tokenizer = AutoTokenizer.from_pretrained(self.model_id)
         model = AutoModelForSequenceClassification.from_pretrained(self.model_id)
         model.eval()
-        model.to("cpu")
+        model.to(self.device)
         self._entailment_index = _label_index(model.config, "entail")
         self._contradiction_index = _label_index(model.config, "contradict")
         self._tokenizer = tokenizer
         self._model = model
         self.revision = _cached_revision(self.model_id)
+
+    def close(self) -> None:
+        self._model = None
+        self._tokenizer = None
 
     def entail(self, premise: str, hypotheses: list[str]) -> list[float]:
         """Independent yes-score for each hypothesis.
@@ -86,6 +102,7 @@ class OpenJevBackend:
                 padding=True,
                 return_tensors="pt",
             )
+            encoded = encoded.to(self.device)
             with torch.inference_mode():
                 logits = self._model(**encoded).logits.float()
             entailment = logits[:, self._entailment_index]
@@ -108,6 +125,18 @@ class OpenJevBackend:
         probabilities = self.entail(text, [hypotheses[label_id] for label_id in ordered])
         scores = dict(zip(ordered, probabilities))
         return _classification("doc_type", scores, threshold, self.name, doc_type_names())
+
+
+def _select_device(torch: Any, force_cpu: bool) -> tuple[str, str]:
+    """CUDA on Linux, MPS on Mac, CPU when --cpu is set or no GPU is present."""
+    if force_cpu:
+        return "cpu", ""
+    if torch.cuda.is_available():
+        return "cuda", ""
+    mps = getattr(torch.backends, "mps", None)
+    if mps is not None and mps.is_available():
+        return "mps", ""
+    return "cpu", "no CUDA or MPS GPU, using cpu"
 
 
 def _require_runtime(torch_version: str) -> None:
