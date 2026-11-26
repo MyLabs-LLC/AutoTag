@@ -229,3 +229,6 @@ __marimo__/
 *.pt
 *.pth
 models/
+
+# macOS Finder metadata
+.DS_Store
