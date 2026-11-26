@@ -1,6 +1,6 @@
 # AutoTag plan
 
-AutoTag assigns two labels to a document. Industry is one name from a list of sixteen, or `other` when the score is below 0.5. Document type is one of ten fixed labels, or `other` on the same rule. The code is on branch `AutoTag` under `autotag/`. The trainer, `CLAUDE.md`, and `pyproject.toml` stay unchanged. OpenJev's Python packages are listed in `autotag/requirements-openjev.txt` and installed into a separate virtualenv.
+AutoTag assigns two labels to a document. Industry is one name from a list of sixteen, or `other` when the score is below 0.5. Document type is one of ten fixed labels, or `other` on the same rule. The project is the `autotag` package in this repository. OpenJev's Python packages are listed in `autotag/requirements-openjev.txt`. The runtime is Python 3.14 and PyTorch 2.14.1 (`torch==2.14.1+cpu`).
 
 ## Decisions
 
@@ -49,7 +49,21 @@ This is a compact common-industry list. It is not NAICS, and nothing in the list
 | specification | Is this document a specification of requirements for a product or system? |
 | financial_statement | Is this document a financial statement such as a balance sheet, income statement, or cash flow statement? |
 
-Industry is scored first, then document type, on the same text. Document type does not depend on the industry label.
+Industry is scored first, then document type, on the same text. Document type does not depend on the industry label. The premise sent to the model is the first 4,000 characters. The fixtures are shorter than that, so the cap does not change them. It is there for longer files, where the jevos guide says the type is visible at the start and the rest of the file buries it.
+
+## What the 2024–2026 sources say, and what this repo uses
+
+| Source | Finding | Adopted |
+|---|---|---|
+| [jevos document-classification guide](https://github.com/feder-cr/jev/wiki/document-classification-with-a-local-llm) and [yes/no zero-shot guide](https://github.com/feder-cr/jev/wiki/zero-shot-text-classification-yes-no-questions) | One yes/no question per label. Put the distinguishing feature in the question. Use "mainly", keep questions parallel, and abstain below a threshold chosen on labeled documents. Do not add an "other" question. Probabilities are independent and do not sum to 1. Prefer the first page over the whole file. | Already the label design. Added the 4,000-character premise cap. Left the 0.5 cutoff where it was: these fixtures are not a labeled tuning set. |
+| [Hugging Face zero-shot pipeline](https://github.com/huggingface/transformers/blob/main/src/transformers/pipelines/zero_shot_classification.py) and Climate-NLI (PACLIC 2024, [anthology](https://aclanthology.org/2024.paclic-1.57.pdf)) | When labels are independent, the yes-score is a softmax of the entailment logit against the contradiction logit. A softmax across labels is a different mode, and it cannot abstain. | Yes. Each question is now scored that way. The previous 3-way P(entailment) left neutral mass in the score, so healthcare and software sat at 0.43–0.46 and abstained. |
+| [openjev-flash model card](https://huggingface.co/xxparthparekhxx/openjev-flash) | A 150M entailment model checks the text in front of it. It is weak when the answer is not in the premise, and its scores are not calibrated across tasks (published JevBench ECE about 0.14–0.18). | Stayed on this checkpoint. Did not ask it to invent an industry code from world knowledge. |
+| ANLP 2025, [From NLI to Classification](https://www.anlp.jp/proceedings/annual_meeting/2025/pdf_dir/P6-8.pdf) | On their biomedical set, a bare label hypothesis beat a "this text is about" gloss, using BART-large-MNLI. | Not adopted. The jevos guide and the company-classification result below both say the gloss is what a small entailment model can check. No held-out set to re-pick the wording. |
+| MDPI Information, 31 Jan 2024, [company classification](https://www.mdpi.com/2078-2489/15/2/77) | Zero-shot GICS with sector names scored F1 0.56; TF-IDF-expanded names scored 0.64; a trained RoBERTa scored 0.81. | Kept the short glosses already in the questions. Did not add a TF-IDF label rewriter or a supervised head. |
+| GLiClass, arXiv [2508.07662](https://arxiv.org/abs/2508.07662) (Aug 2025) and [gliclass-v4-edge](https://huggingface.co/knowledgator/gliclass-v4-edge) | One encoder pass scores every label. The edge model is built for CPUs. Few-shot (8 examples per label) lifts the small models by a large margin. DeBERTa backbones beat ModernBERT in their table. | Not adopted. It is a new package and a different checkpoint. It is the CPU candidate to try if OpenJev-flash is replaced, after a labeled set exists. |
+| SetFit zero-shot ([Hugging Face docs](https://huggingface.co/docs/setfit/how_to/zero_shot)) | Label-name embeddings from a small bi-encoder (they use `BAAI/bge-small-en-v1.5`) are a fast baseline. The published latency comparison is on GPU. Few-shot SetFit needs examples. | Not adopted. No labeled examples, and it is a second model stack. |
+| BEACON (Journal of Data Science, 2025, [doi 10.6339/25-jds1180](https://doi.org/10.6339/25-jds1180)) and CLIPS (EPICOH 2025, [doi 10.1136/oemed-2025-epicohabstracts.59](https://doi.org/10.1136/oemed-2025-epicohabstracts.59)) | Census and job-text systems that rank NAICS codes. CLIPS top-1 agreement with an expert was 47.4% at 5 digits; the expert code was in the top 10 for 80%. | Not adopted. The industry list stays the sixteen names. NAICS is a different task and both systems need training text. |
+| [OpenJev-Flash-9B](https://huggingface.co/openjev/OpenJev-Flash-9B) and the [OpenRouter Jev cookbook](https://openrouter.ai/docs/cookbook/evaluate-and-optimize/jev-classification) | Same noul / choice API. A `choice` question is for labels that cannot overlap. A 9B model is the small member of that family. | Not adopted. 9B is outside this CPU budget. A single `choice` softmax cannot abstain the way an independent threshold can, so the runtime stays one noul-style question per label. |
 
 ## Model
 
@@ -57,9 +71,9 @@ Industry is scored first, then document type, on the same text. Document type do
 |---|---|
 | Model id | `xxparthparekhxx/openjev-flash` |
 | Revision | `9f754e6582c1c5cb7f03bf24832cd64388fc004f` |
-| Device | CPU, 4 threads, float32 |
-| Score | P(entailment) from the 3-way softmax |
-| Threshold | 0.5, unchanged from the previous run, not refit on these scores |
+| Runtime | Python 3.14, PyTorch 2.14.1 CPU (`torch==2.14.1+cpu`), 4 threads, float32 |
+| Score | P(entailment given entailment or contradiction), per question. Not renormalized across labels. |
+| Threshold | 0.5, not refit on these scores |
 | Record | `autotag/measurements/cpu-accuracy.json` |
 
 ## CPU results on the fixtures
@@ -68,30 +82,32 @@ Every industry label below is one of the sixteen names, or `other`. None is a sp
 
 | Document | Industry | Document type | Fixture intent (type) |
 |---|---|---|---|
-| hospital_invoice.txt | healthcare (0.813) | invoice (0.850) | invoice |
-| discharge_summary.txt | other (healthcare 0.437) | report (0.642) | report |
-| saas_agreement.txt | other (software 0.457) | contract (0.965) | contract |
-| payment_receipt.txt | other (healthcare 0.456) | receipt (0.814) | receipt |
-| privacy_policy.txt | other (healthcare 0.208) | policy (0.918) | policy |
-| customer_letter.txt | other (healthcare 0.249) | letter (0.596) | letter |
-| status_email.txt | other (healthcare 0.289) | email (0.963) | email |
-| team_memo.txt | other (healthcare 0.332) | memo (0.909) | memo |
-| api_specification.txt | other (healthcare 0.254) | other (specification 0.391) | specification |
-| income_statement.txt | healthcare (0.535) | other (report 0.326) | financial_statement |
-| kitchen_note.txt | other (retail 0.103) | other (0.055) | other |
+| hospital_invoice.txt | healthcare (0.919) | invoice (0.962) | invoice |
+| discharge_summary.txt | healthcare (0.738) | report (0.966) | report |
+| saas_agreement.txt | software (0.786) | contract (0.987) | contract |
+| payment_receipt.txt | healthcare (0.782) | receipt (0.987) | receipt |
+| privacy_policy.txt | healthcare (0.839) | policy (0.988) | policy |
+| customer_letter.txt | healthcare (0.775) | letter (0.958) | letter |
+| status_email.txt | other (healthcare 0.363) | email (0.976) | email |
+| team_memo.txt | other (healthcare 0.457) | memo (0.982) | memo |
+| api_specification.txt | healthcare (0.612) | specification (0.977) | specification |
+| income_statement.txt | healthcare (0.861) | report (0.971) | financial_statement |
+| kitchen_note.txt | other (retail 0.262) | other (0.293) | other |
 
-Two documents receive an industry: the hospital invoice and the hospital income statement, both healthcare. The other nine abstain. On the hospital discharge summary, the receipt, and the SaaS agreement, the leading industry is the sensible one (healthcare or software) and sits just under 0.5 (0.437, 0.456, 0.457). The grocery note's best industry is retail at 0.103.
+Eight documents receive an industry: healthcare, except the SaaS agreement, which is software. The grocery note abstains (retail 0.262). The lab-results email and the nursing memo also abstain, with healthcare at 0.363 and 0.457.
 
-Document type matches the fixture file on 9 of 11. The specification sample abstains with specification at 0.391. The income statement abstains with report at 0.326. That 9/11 count is a check against text written with the samples. It is not agreement with a person or with a large language model. No industry gold file exists, so this run does not score industry against an intent.
+Document type matches the fixture file on 10 of 11. The specification sample, which previously abstained at 0.391 under the 3-way score, is now specification at 0.977. The income statement is the miss: report is 0.971 and financial_statement is 0.763, so both clear 0.5 and the one-label rule keeps report. The questions were not rewritten to chase that one file.
 
-On this process, with the weights already cached: load 2.9 s, then about 0.17–0.31 s per document. Peak resident set 701 MB.
+That 10/11 figure is a check against text written with the samples. It is not agreement with a person or with a large language model. No industry gold file exists.
+
+This run used Python 3.14.10 and `torch==2.14.1+cpu`. Load 5.7 s, then about 0.18–0.29 s per document (2.56 s for all 11). Peak resident set 737 MB.
 
 ## Still missing for a real agreement number
 
 1. Documents nobody on this branch wrote, on the order of 50.
 2. At least two people labeling both axes from these questions, plus an adjudicated label where they disagree.
 3. One named large language model, temperature 0, asked the same questions.
-4. A threshold chosen on one slice and scored on the rest. 0.5 is still the predeclared cutoff. Several industry scores land between 0.43 and 0.46, so the cutoff moves those rows between a label and `other`.
+4. A threshold chosen on one slice and scored on the rest. 0.5 is still the predeclared cutoff. The nursing memo's healthcare score is 0.457, so a small move in the cutoff changes that row.
 5. `autotag/agreement.py` computes accuracy and Cohen's kappa. It has no human or LLM labels to score.
 
 ## How to run it again

@@ -73,4 +73,4 @@ autotag/.venv/bin/python -m autotag accuracy
 
 That command classifies every file in `autotag/fixtures/` and rewrites `autotag/measurements/cpu-accuracy.json`. Weights download into the Hugging Face cache. Do not commit the virtualenv or the weights.
 
-On the recorded CPU run (float32, 4 threads, threshold 0.5), two documents received an industry, both `healthcare` (the hospital invoice at 0.813 and the hospital income statement at 0.535). The other nine abstained. Document type matched the fixture file on 9 of 11. The full table is in the plan.
+On the recorded CPU run (Python 3.14, PyTorch 2.14.1+cpu, float32, threshold 0.5), each label is scored on its own as P(entailment | entailment or contradiction). Eight documents receive an industry (`healthcare` or `software`). The grocery note, the lab-results email, and the nursing memo abstain. Document type matches the fixture file on 10 of 11. The income statement is labeled `report` (0.971) over `financial_statement` (0.763). That count is not agreement with a person or a large language model. The full table is in the plan.
