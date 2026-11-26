@@ -1,17 +1,17 @@
 # AutoTag plan
 
-AutoTag assigns two labels to a document. Industry is one name from a list of sixteen, or `other` when the score is below 0.5. Document type is one of ten fixed labels, or `other` on the same rule. The project is the `autotag` package in this repository. OpenJev's Python packages are listed in `autotag/requirements-openjev.txt`. The runtime is Python 3.14 and PyTorch 2.14.1 (`torch==2.14.1+cpu`).
+AutoTag assigns two labels to a document. Industry is one everyday name from a list of twenty-eight, or `other` when the score is below 0.5. Document type is one of twenty plain names, or `other` on the same rule. The project is the `autotag` package in this repository. OpenJev's Python packages are listed in `autotag/requirements-openjev.txt`. The runtime is Python 3.14 and PyTorch 2.14.1 (`torch==2.14.1+cpu`).
 
 ## Decisions
 
 1. The CPU model is `xxparthparekhxx/openjev-flash` (~150M). The 71M checkpoint remains the fallback if flash does not load. jevos-v5 is not the target. A generic DeBERTa MNLI model is not the target.
 2. Industry is a short named list, written in `autotag/labels.py`. The model picks one industry from that list, or abstains. It does not propose a phrase copied from the page. The earlier open-phrase run is retired: winners such as `quarter ending` and `closes six` were page bigrams, not industries.
-3. Document type stays the fixed ten: invoice, receipt, contract, policy, report, letter, email, memo, specification, financial_statement. One best label per axis. If the winning score is below 0.5, the label is `other`.
+3. Document type is a plain-language list: invoice, receipt, contract, policy, report, letter, email, memo, specification, financial statement, proposal, purchase order, resume, presentation, manual, press release, meeting notes, form, quote, and article. One best label per axis. If the winning score is below 0.5, the label is `other`. The words are what a person would say, not codes.
 4. The measurement is a CPU accuracy run on the fixtures, not a tagging UI. There is still no human-labeled set and no comparison LLM, so fixture-intent counts are not an agreement rate.
 
 ## Industry list
 
-Sixteen names. Each question is asked once. OpenJev-flash scores the statement form of the question (the answer "yes"), because the checkpoint is an entailment model and does not answer a question by generating text. P(entailment) is not renormalized across the sixteen, so the best industry can still fall under 0.5.
+Twenty-eight names a person would say at a glance: healthcare, not a sector code. Each question is asked once. OpenJev-flash scores the statement form of the question (the answer "yes"). The yes-score is P(entailment | entailment or contradiction) for that question alone, so the best industry can still fall under 0.5.
 
 | Id | Yes/no question |
 |---|---|
@@ -31,8 +31,20 @@ Sixteen names. Each question is asked once. OpenJev-flash scores the statement f
 | hospitality | Is this document mainly about the hospitality industry (hotels, restaurants, or food service)? |
 | telecommunications | Is this document mainly about the telecommunications industry (telephone, internet access, or broadcasting)? |
 | agriculture | Is this document mainly about the agriculture industry (farming, crops, or livestock)? |
+| media | Is this document mainly about the media industry (news, publishing, film, or television)? |
+| marketing | Is this document mainly about the marketing industry (advertising, campaigns, or promoting a brand)? |
+| nonprofit | Is this document mainly about the nonprofit industry (charities, donations, or nonprofit organizations)? |
+| pharmaceuticals | Is this document mainly about the pharmaceuticals industry (drug makers, pharmacies, or medicines)? |
+| automotive | Is this document mainly about the automotive industry (cars, vehicle makers, or car dealers)? |
+| food | Is this document mainly about the food and beverage industry (food makers, groceries, or packaged drinks)? |
+| consulting | Is this document mainly about the consulting industry (advising a client or a consulting engagement)? |
+| staffing | Is this document mainly about the staffing industry (recruiting, temp agencies, or placing workers)? |
+| mining | Is this document mainly about the mining industry (mines, ore, or quarries)? |
+| aerospace | Is this document mainly about the aerospace industry (aircraft, spacecraft, or satellites)? |
+| logistics | Is this document mainly about the logistics industry (warehousing, fulfillment, or moving goods for others)? |
+| sports | Is this document mainly about the sports industry (teams, leagues, stadiums, or sporting events)? |
 
-This is a compact common-industry list. It is not NAICS, and nothing in the list forces a SaaS document to a numeric sector code.
+The names are everyday words. The list is not NAICS, and a SaaS document is not forced to a numeric sector code.
 
 ## Document type
 
@@ -42,12 +54,22 @@ This is a compact common-industry list. It is not NAICS, and nothing in the list
 | receipt | Is this document a receipt confirming a payment already made? |
 | contract | Is this document a contract or agreement between parties? |
 | policy | Is this document a policy that states rules someone must follow? |
-| report | Is this document a report that presents findings or results? |
+| report | Is this document a narrative report of findings, an investigation, or a clinical course? |
 | letter | Is this document a letter addressed to a person or organisation? |
 | email | Is this document an email message with a sender and a subject? |
 | memo | Is this document an internal memorandum to colleagues? |
 | specification | Is this document a specification of requirements for a product or system? |
-| financial_statement | Is this document a financial statement such as a balance sheet, income statement, or cash flow statement? |
+| financial_statement | Is this document a financial statement, such as an income statement, a balance sheet, or a cash flow statement? |
+| proposal | Is this document a proposal offering work or a plan for someone to accept? |
+| purchase_order | Is this document a purchase order telling a seller what to supply? |
+| resume | Is this document a resume or CV describing a person's jobs and education? |
+| presentation | Is this document a presentation or a slide deck? |
+| manual | Is this document a manual or user guide explaining how to do something? |
+| press_release | Is this document a press release announcing news to the public? |
+| meeting_notes | Is this document meeting notes or minutes of a discussion? |
+| form | Is this document a form with blanks for someone to fill in? |
+| quote | Is this document a price quote or an estimate for work or goods? |
+| article | Is this document a news article or a magazine article written for readers? |
 
 Industry is scored first, then document type, on the same text. Document type does not depend on the industry label. The premise sent to the model is the first 4,000 characters. The fixtures are shorter than that, so the cap does not change them. It is there for longer files, where the jevos guide says the type is visible at the start and the rest of the file buries it.
 
@@ -78,29 +100,29 @@ Industry is scored first, then document type, on the same text. Document type do
 
 ## CPU results on the fixtures
 
-Every industry label below is one of the sixteen names, or `other`. None is a span copied from the page. The parenthetical score on an abstention is the best industry in the list, which stayed under 0.5.
+Every industry label below is one of the twenty-eight names, or `other`. None is a code or a span copied from the page. The parenthetical score on an abstention is the best industry in the list, which stayed under 0.5.
 
 | Document | Industry | Document type | Fixture intent (type) |
 |---|---|---|---|
-| hospital_invoice.txt | healthcare (0.919) | invoice (0.962) | invoice |
-| discharge_summary.txt | healthcare (0.738) | report (0.966) | report |
-| saas_agreement.txt | software (0.786) | contract (0.987) | contract |
+| hospital_invoice.txt | healthcare (0.919) | invoice (0.963) | invoice |
+| discharge_summary.txt | healthcare (0.726) | report (0.884) | report |
+| saas_agreement.txt | software (0.777) | contract (0.987) | contract |
 | payment_receipt.txt | healthcare (0.782) | receipt (0.987) | receipt |
 | privacy_policy.txt | healthcare (0.839) | policy (0.988) | policy |
-| customer_letter.txt | healthcare (0.775) | letter (0.958) | letter |
+| customer_letter.txt | healthcare (0.775) | letter (0.957) | letter |
 | status_email.txt | other (healthcare 0.363) | email (0.976) | email |
 | team_memo.txt | other (healthcare 0.457) | memo (0.982) | memo |
-| api_specification.txt | healthcare (0.612) | specification (0.977) | specification |
-| income_statement.txt | healthcare (0.861) | report (0.971) | financial_statement |
-| kitchen_note.txt | other (retail 0.262) | other (0.293) | other |
+| api_specification.txt | healthcare (0.611) | specification (0.977) | specification |
+| income_statement.txt | healthcare (0.861) | specification (0.903) | financial_statement |
+| kitchen_note.txt | other (logistics 0.492) | other (0.462) | other |
 
-Eight documents receive an industry: healthcare, except the SaaS agreement, which is software. The grocery note abstains (retail 0.262). The lab-results email and the nursing memo also abstain, with healthcare at 0.363 and 0.457.
+Eight documents receive an industry. Hospital documents are healthcare. The SaaS agreement is software. The grocery note abstains (logistics 0.492). The lab-results email and the nursing memo abstain, with healthcare at 0.363 and 0.457.
 
-Document type matches the fixture file on 10 of 11. The specification sample, which previously abstained at 0.391 under the 3-way score, is now specification at 0.977. The income statement is the miss: report is 0.971 and financial_statement is 0.763, so both clear 0.5 and the one-label rule keeps report. The questions were not rewritten to chase that one file.
+Document type matches the fixture file on 10 of 11. The income statement is the miss: specification is 0.903 and financial statement is 0.731, so the one-label rule keeps specification. A person looking at the title "INCOME STATEMENT" would say financial statement. The questions were not tuned further on this one file.
 
 That 10/11 figure is a check against text written with the samples. It is not agreement with a person or with a large language model. No industry gold file exists.
 
-This run used Python 3.14.10 and `torch==2.14.1+cpu`. Load 5.7 s, then about 0.18–0.29 s per document (2.56 s for all 11). Peak resident set 737 MB.
+This run used Python 3.14.10 and `torch==2.14.1+cpu`. Load 2.3 s with weights cached, then about 0.33–0.55 s per document. Peak resident set 757 MB.
 
 ## Still missing for a real agreement number
 
