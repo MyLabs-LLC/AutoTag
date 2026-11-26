@@ -18,6 +18,9 @@ PREFERRED_MODEL = "xxparthparekhxx/openjev-flash"
 FALLBACK_MODEL = "RazvanManolache/raz-systemone-nli-xsmall-openjev"
 MAX_LENGTH = 512
 BATCH = 8
+# jevos document-classification guide: the type is announced on the first page.
+# Keep a short premise so later clauses do not bury that signal.
+PREMISE_CHARS = 4000
 
 
 class OpenJevBackend:
@@ -51,18 +54,26 @@ class OpenJevBackend:
         model = AutoModelForSequenceClassification.from_pretrained(self.model_id)
         model.eval()
         model.to("cpu")
-        self._entailment_index = _entailment_index(model.config)
+        self._entailment_index = _label_index(model.config, "entail")
+        self._contradiction_index = _label_index(model.config, "contradict")
         self._tokenizer = tokenizer
         self._model = model
         self.revision = _cached_revision(self.model_id)
 
     def entail(self, premise: str, hypotheses: list[str]) -> list[float]:
-        """P(entailment) for each hypothesis, in order. Empty input returns []."""
+        """Independent yes-score for each hypothesis.
+
+        Softmax over contradiction and entailment only, the same reduction the
+        Hugging Face zero-shot pipeline uses when labels are not forced to sum
+        to 1. Neutral is left out, and labels are not renormalized against
+        each other, so a weak best label can still fall under the threshold.
+        """
         if not hypotheses:
             return []
         self.load()
         import torch
 
+        premise = premise[:PREMISE_CHARS]
         scores: list[float] = []
         assert self._model is not None and self._tokenizer is not None
         for start in range(0, len(hypotheses), BATCH):
@@ -77,9 +88,11 @@ class OpenJevBackend:
             )
             with torch.inference_mode():
                 logits = self._model(**encoded).logits.float()
-                probabilities = torch.softmax(logits, dim=-1)
-            column = probabilities[:, self._entailment_index]
-            scores.extend(float(value) for value in column.tolist())
+            entailment = logits[:, self._entailment_index]
+            contradiction = logits[:, self._contradiction_index]
+            paired = torch.stack((contradiction, entailment), dim=-1)
+            yes = torch.softmax(paired, dim=-1)[:, 1]
+            scores.extend(float(value) for value in yes.tolist())
         return scores
 
     def propose_industry(self, text: str, threshold: float = DEFAULT_THRESHOLD):
@@ -110,13 +123,13 @@ def _require_runtime(torch_version: str) -> None:
         raise RuntimeError(f"AutoTag requires PyTorch 2.14.1. Installed torch is {torch_version}.")
 
 
-def _entailment_index(config: Any) -> int:
+def _label_index(config: Any, needle: str) -> int:
     raw = getattr(config, "id2label", {}) or {}
     labels = {int(key): str(value).lower() for key, value in raw.items()}
     for index, name in labels.items():
-        if "entail" in name:
+        if needle in name:
             return index
-    raise RuntimeError(f"Checkpoint labels have no entailment class: {labels}")
+    raise RuntimeError(f"Checkpoint labels have no {needle!r} class: {labels}")
 
 
 def _cached_revision(model_id: str) -> str:

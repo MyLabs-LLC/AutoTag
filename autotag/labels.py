@@ -47,6 +47,18 @@ INDUSTRIES: tuple[Label, ...] = (
     _industry("hospitality", "hospitality", "hotels, restaurants, or food service"),
     _industry("telecommunications", "telecommunications", "telephone, internet access, or broadcasting"),
     _industry("agriculture", "agriculture", "farming, crops, or livestock"),
+    _industry("media", "media", "news, publishing, film, or television"),
+    _industry("marketing", "marketing", "advertising, campaigns, or promoting a brand"),
+    _industry("nonprofit", "nonprofit", "charities, donations, or nonprofit organizations"),
+    _industry("pharmaceuticals", "pharmaceuticals", "drug makers, pharmacies, or medicines"),
+    _industry("automotive", "automotive", "cars, vehicle makers, or car dealers"),
+    _industry("food", "food and beverage", "food makers, groceries, or packaged drinks"),
+    _industry("consulting", "consulting", "advising a client or a consulting engagement"),
+    _industry("staffing", "staffing", "recruiting, temp agencies, or placing workers"),
+    _industry("mining", "mining", "mines, ore, or quarries"),
+    _industry("aerospace", "aerospace", "aircraft, spacecraft, or satellites"),
+    _industry("logistics", "logistics", "warehousing, fulfillment, or moving goods for others"),
+    _industry("sports", "sports", "teams, leagues, stadiums, or sporting events"),
 )
 
 DOC_TYPES: tuple[Label, ...] = (
@@ -77,8 +89,8 @@ DOC_TYPES: tuple[Label, ...] = (
     _doc_type(
         "report",
         "Report",
-        "Is this document a report that presents findings or results?",
-        "This document is a report that presents findings or results.",
+        "Is this document a narrative report of findings, an investigation, or a clinical course?",
+        "This document is a narrative report of findings, an investigation, or a clinical course.",
     ),
     _doc_type(
         "letter",
@@ -107,8 +119,68 @@ DOC_TYPES: tuple[Label, ...] = (
     _doc_type(
         "financial_statement",
         "Financial statement",
-        "Is this document a financial statement such as a balance sheet, income statement, or cash flow statement?",
-        "This document is a financial statement such as a balance sheet, income statement, or cash flow statement.",
+        "Is this document a financial statement, such as an income statement, a balance sheet, or a cash flow statement?",
+        "This document is a financial statement, such as an income statement, a balance sheet, or a cash flow statement.",
+    ),
+    _doc_type(
+        "proposal",
+        "Proposal",
+        "Is this document a proposal offering work or a plan for someone to accept?",
+        "This document is a proposal offering work or a plan for someone to accept.",
+    ),
+    _doc_type(
+        "purchase_order",
+        "Purchase order",
+        "Is this document a purchase order telling a seller what to supply?",
+        "This document is a purchase order telling a seller what to supply.",
+    ),
+    _doc_type(
+        "resume",
+        "Resume",
+        "Is this document a resume or CV describing a person's jobs and education?",
+        "This document is a resume or CV describing a person's jobs and education.",
+    ),
+    _doc_type(
+        "presentation",
+        "Presentation",
+        "Is this document a presentation or a slide deck?",
+        "This document is a presentation or a slide deck.",
+    ),
+    _doc_type(
+        "manual",
+        "Manual",
+        "Is this document a manual or user guide explaining how to do something?",
+        "This document is a manual or user guide explaining how to do something.",
+    ),
+    _doc_type(
+        "press_release",
+        "Press release",
+        "Is this document a press release announcing news to the public?",
+        "This document is a press release announcing news to the public.",
+    ),
+    _doc_type(
+        "meeting_notes",
+        "Meeting notes",
+        "Is this document meeting notes or minutes of a discussion?",
+        "This document is meeting notes or minutes of a discussion.",
+    ),
+    _doc_type(
+        "form",
+        "Form",
+        "Is this document a form with blanks for someone to fill in?",
+        "This document is a form with blanks for someone to fill in.",
+    ),
+    _doc_type(
+        "quote",
+        "Quote",
+        "Is this document a price quote or an estimate for work or goods?",
+        "This document is a price quote or an estimate for work or goods.",
+    ),
+    _doc_type(
+        "article",
+        "Article",
+        "Is this document a news article or a magazine article written for readers?",
+        "This document is a news article or a magazine article written for readers.",
     ),
 )
 

@@ -2,8 +2,8 @@
 
 AutoTag reads a plain-text document and assigns two labels:
 
-- **Industry.** One of sixteen named industries, or `other`.
-- **Document type.** One of ten document types, or `other`.
+- **Industry.** One of twenty-eight everyday industry names, or `other`.
+- **Document type.** One of twenty document types, or `other`.
 
 Each label is a separate yes/no question. The score is how strongly the text entails the “yes” form of that question. The best score wins. If it is below **0.5**, the label is `other`. Scores are not forced to add up to 1, so abstaining is possible on both axes. Industry is chosen from the list below. The model does not invent a phrase from the page.
 
@@ -33,6 +33,18 @@ One question each: “Is this document mainly about the {name} industry ({gloss}
 | hospitality | hotels, restaurants, or food service |
 | telecommunications | telephone, internet access, or broadcasting |
 | agriculture | farming, crops, or livestock |
+| media | news, publishing, film, or television |
+| marketing | advertising, campaigns, or promoting a brand |
+| nonprofit | charities, donations, or nonprofit organizations |
+| pharmaceuticals | drug makers, pharmacies, or medicines |
+| automotive | cars, vehicle makers, or car dealers |
+| food | food makers, groceries, or packaged drinks |
+| consulting | advising a client or a consulting engagement |
+| staffing | recruiting, temp agencies, or placing workers |
+| mining | mines, ore, or quarries |
+| aerospace | aircraft, spacecraft, or satellites |
+| logistics | warehousing, fulfillment, or moving goods for others |
+| sports | teams, leagues, stadiums, or sporting events |
 
 ## Document types
 
@@ -42,12 +54,22 @@ One question each: “Is this document mainly about the {name} industry ({gloss}
 | receipt | Is this document a receipt confirming a payment already made? |
 | contract | Is this document a contract or agreement between parties? |
 | policy | Is this document a policy that states rules someone must follow? |
-| report | Is this document a report that presents findings or results? |
+| report | Is this document a narrative report of findings, an investigation, or a clinical course? |
 | letter | Is this document a letter addressed to a person or organisation? |
 | email | Is this document an email message with a sender and a subject? |
 | memo | Is this document an internal memorandum to colleagues? |
 | specification | Is this document a specification of requirements for a product or system? |
-| financial_statement | Is this document a financial statement such as a balance sheet, income statement, or cash flow statement? |
+| financial_statement | Is this document a financial statement, such as an income statement, a balance sheet, or a cash flow statement? |
+| proposal | Is this document a proposal offering work or a plan for someone to accept? |
+| purchase_order | Is this document a purchase order telling a seller what to supply? |
+| resume | Is this document a resume or CV describing a person's jobs and education? |
+| presentation | Is this document a presentation or a slide deck? |
+| manual | Is this document a manual or user guide explaining how to do something? |
+| press_release | Is this document a press release announcing news to the public? |
+| meeting_notes | Is this document meeting notes or minutes of a discussion? |
+| form | Is this document a form with blanks for someone to fill in? |
+| quote | Is this document a price quote or an estimate for work or goods? |
+| article | Is this document a news article or a magazine article written for readers? |
 
 ## Run without the model
 
@@ -73,4 +95,4 @@ autotag/.venv/bin/python -m autotag accuracy
 
 That command classifies every file in `autotag/fixtures/` and rewrites `autotag/measurements/cpu-accuracy.json`. Weights download into the Hugging Face cache. Do not commit the virtualenv or the weights.
 
-On the recorded CPU run (float32, 4 threads, threshold 0.5), two documents received an industry, both `healthcare` (the hospital invoice at 0.813 and the hospital income statement at 0.535). The other nine abstained. Document type matched the fixture file on 9 of 11. The full table is in the plan.
+On the recorded CPU run (Python 3.14, PyTorch 2.14.1+cpu, float32, threshold 0.5), eight documents receive an industry (`healthcare`, or `software` for the SaaS agreement). The grocery note, the lab-results email, and the nursing memo abstain. Document type matches the fixture file on 10 of 11. The income statement is labeled `specification` (0.903) over `financial_statement` (0.731). That count is not agreement with a person or a large language model. The full table is in the plan.

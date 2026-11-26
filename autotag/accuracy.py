@@ -87,7 +87,11 @@ def run_accuracy(
         "threads": getattr(backend, "threads", None),
         "threshold": threshold,
         "industry_questions": industry_questions(),
-        "score": "P(entailment) from the 3-way softmax, not renormalized across labels",
+        "score": (
+            "P(entailment | entailment or contradiction) for each question on its own. "
+            "Neutral is ignored. Labels are not renormalized against each other. "
+            "The premise is the first 4000 characters."
+        ),
         "load_s": round(load_s, 4),
         "warmup_s": round(warmup_s, 4),
         "peak_rss_mb": round(_rss_mb(), 1),
