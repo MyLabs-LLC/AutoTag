@@ -45,4 +45,4 @@ Keys live in `.env`. Do not commit `.env`, `output/`, or `run.json`. `HUGGINGFAC
 
 Entailment models need Python 3.14 and PyTorch 2.14.1 from `autotag/requirements-openjev.txt`. The stub path stays on the standard library. A binary checkpoint labeled `entailment` / `not_entailment` is valid. A three-way checkpoint uses contradiction versus entailment, and neutral is left out of the score.
 
-Labels are not renormalized across the list. Below 0.5, that side is `Null`.
+Labels are not renormalized across the list. Below 0.2, that side is `Null`.

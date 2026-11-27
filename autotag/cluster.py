@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Protocol, Sequence
 
-from autotag.classify import Classification, StubBackend, Tagger, classify_document
+from autotag.classify import DEFAULT_THRESHOLD, Classification, StubBackend, Tagger, classify_document
 
 _STOPS = frozenset(
     """
@@ -161,7 +161,7 @@ def cluster_texts(
     embedder: Embedder | None = None,
     classifier: Tagger | None = None,
     threshold: float = 0.2,
-    classify_threshold: float = 0.5,
+    classify_threshold: float = DEFAULT_THRESHOLD,
 ) -> tuple[list[Cluster], list[list[float]]]:
     """Cluster `(doc_id, text)` pairs. Returns clusters and the cosine matrix."""
     model = embedder if embedder is not None else LexicalTfEmbedder()

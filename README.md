@@ -3,9 +3,9 @@
 AutoTag reads a plain-text document and assigns two labels:
 
 - **Industry.** One of twenty-eight everyday industry names, or `other`.
-- **Document type.** One name from the document-type list, or no type when the score is below 0.5. The list is the original twenty plus the types that appear in the cluster corpus.
+- **Document type.** One name from the document-type list, or no type when the score is below 0.2. The list is the original twenty plus the types that appear in the cluster corpus.
 
-Each label is a separate yes/no question. The score is how strongly the text entails the “yes” form of that question. The best score wins. If it is below **0.5**, the label is `other`. Scores are not forced to add up to 1, so abstaining is possible on both axes. Industry is chosen from the list below. The model does not invent a phrase from the page.
+Each label is a separate yes/no question. The score is how strongly the text entails the “yes” form of that question. The best score wins. If it is below **0.2**, the label is `other`. Scores are not forced to add up to 1, so abstaining is possible on both axes. Industry is chosen from the list below. The model does not invent a phrase from the page.
 
 The CPU checkpoint used for the recorded run is [`xxparthparekhxx/openjev-flash`](https://huggingface.co/xxparthparekhxx/openjev-flash) (about 150M parameters, Ettin encoder). It scores a premise against a hypothesis. It does not generate text. If that checkpoint fails to load, the accuracy command tries `RazvanManolache/raz-systemone-nli-xsmall-openjev` (71M).
 
@@ -89,7 +89,7 @@ python -m autotag --model all --dataset autotag/fixtures/hospital_invoice.txt
 python -m autotag --model stub --dataset ../data/v0.6.3_cluster_files -r
 ```
 
-`--model` accepts `stub`, `openjev-flash`, `openjev-71m`, `all`, or a Hugging Face model id. `--dataset` accepts `fixtures`, `all`, a directory of documents, or one document. `-r` reads subdirectories. The model sees the first 16 KiB of each file. PDF, Word, Excel, PowerPoint, RTF, HTML, XML, JSON, and CSV are read with Kreuzberg. `--threshold` defaults to 0.5. The JSON record is `autotag/measurements/run.json` unless `--output` says otherwise.
+`--model` accepts `stub`, `openjev-flash`, `openjev-71m`, `all`, or a Hugging Face model id. `--dataset` accepts `fixtures`, `all`, a directory of documents, or one document. `-r` reads subdirectories. The model sees the first 16 KiB of each file. PDF, Word, Excel, PowerPoint, RTF, HTML, XML, JSON, and CSV are read with Kreuzberg. `--threshold` defaults to 0.2. The JSON record is `autotag/measurements/run.json` unless `--output` says otherwise.
 
 `stub` is a deterministic lexicon and needs no download. Its scores are not the OpenJev numbers in the plan. OpenJev models need the environment below. A model that fails to load is recorded in the JSON, and the command continues with the other models.
 

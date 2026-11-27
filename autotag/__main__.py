@@ -75,7 +75,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--rand", type=int, default=None, metavar="N", help="Score N documents chosen at random.")
     parser.add_argument("--seed", type=int, default=None, metavar="N", help="Seed for --rand. The same seed picks the same documents.")
-    parser.add_argument("--threshold", type=float, default=DEFAULT_THRESHOLD, help="Abstain below this score. Default: 0.5.")
+    parser.add_argument(
+        "--threshold",
+        type=float,
+        default=DEFAULT_THRESHOLD,
+        help=f"Abstain below this score. Default: {DEFAULT_THRESHOLD}.",
+    )
     parser.add_argument("--output", default=str(DEFAULT_OUTPUT), help=f"JSON record. Default: {DEFAULT_OUTPUT}.")
     return parser
 

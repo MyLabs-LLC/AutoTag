@@ -64,7 +64,8 @@ _STUB_PHRASES: dict[str, tuple[str, ...]] = {
 }
 
 _FLOOR = 0.02
-DEFAULT_THRESHOLD = 0.5
+# Best label wins. Under 0.2 every label was rejected, so that side stays Null.
+DEFAULT_THRESHOLD = 0.2
 
 
 def _phrases(label_id: str) -> tuple[str, ...]:

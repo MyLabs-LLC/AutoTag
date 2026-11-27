@@ -44,7 +44,7 @@ def _score_meaning(kind: str) -> str:
 _NOT_MEASURED = [
     "Agreement with a human labeler. No labeled set of about 50 documents, and no second annotator.",
     "Agreement with a large language model. No comparison model was named or run.",
-    "A threshold fit on held-out labels. 0.5 was fixed before reading these scores.",
+    "A threshold fit on held-out labels. The cutoff is 0.2 so a best guess under 0.5 is kept. It was not tuned on a labeled set.",
 ]
 
 
