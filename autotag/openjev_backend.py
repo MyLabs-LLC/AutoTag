@@ -66,8 +66,8 @@ class OpenJevBackend:
         model = AutoModelForSequenceClassification.from_pretrained(self.model_id)
         model.eval()
         model.to(self.device)
-        self._entailment_index = _label_index(model.config, "entail")
-        self._contradiction_index = _label_index(model.config, "contradict")
+        self._entailment_index = _entailment_index(model.config)
+        self._contradiction_index = _negative_index(model.config, self._entailment_index)
         self._tokenizer = tokenizer
         self._model = model
         self.revision = _cached_revision(self.model_id)
@@ -152,13 +152,33 @@ def _require_runtime(torch_version: str) -> None:
         raise RuntimeError(f"AutoTag requires PyTorch 2.14.1. Installed torch is {torch_version}.")
 
 
-def _label_index(config: Any, needle: str) -> int:
+def _id2label(config: Any) -> dict[int, str]:
     raw = getattr(config, "id2label", {}) or {}
-    labels = {int(key): str(value).lower() for key, value in raw.items()}
+    return {int(key): str(value).lower() for key, value in raw.items()}
+
+
+def _entailment_index(config: Any) -> int:
+    """The positive class. `not_entailment` is the negative class on binary checkpoints."""
+    labels = _id2label(config)
     for index, name in labels.items():
-        if needle in name:
+        if name in {"entailment", "entail"}:
             return index
-    raise RuntimeError(f"Checkpoint labels have no {needle!r} class: {labels}")
+    for index, name in labels.items():
+        if "entail" in name and not name.startswith("not"):
+            return index
+    raise RuntimeError(f"Checkpoint labels have no entailment class: {labels}")
+
+
+def _negative_index(config: Any, entailment_index: int) -> int:
+    """Contradiction when the checkpoint has one, otherwise the other class of a binary model."""
+    labels = _id2label(config)
+    for index, name in labels.items():
+        if "contradict" in name:
+            return index
+    others = [index for index in labels if index != entailment_index]
+    if len(labels) == 2 and len(others) == 1:
+        return others[0]
+    raise RuntimeError(f"Checkpoint labels have no contradiction class: {labels}")
 
 
 def _cached_revision(model_id: str) -> str:

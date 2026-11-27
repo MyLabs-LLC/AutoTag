@@ -18,3 +18,4 @@ torch==2.14.1+cu130 ; sys_platform == "linux" or sys_platform == "win32"
 transformers>=4.57
 huggingface_hub>=0.26
 kreuzberg>=4.10,<5
+cursor-sdk>=1.5

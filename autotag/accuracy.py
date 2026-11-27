@@ -32,6 +32,12 @@ def _score_meaning(kind: str) -> str:
         return _SCORE
     if kind == "gemini":
         return "Gemini 4 Hydrogen confidence for the chosen label. Not an entailment score."
+    if kind == "grok":
+        return "Composer 2.5 confidence for the chosen label, through the Cursor API. Not an entailment score."
+    if kind == "xai":
+        return "Grok 4.7 Medium confidence for the chosen label, through the xAI API. Not an entailment score."
+    if kind == "nemotron":
+        return "Local Nemotron confidence for the chosen label, through the Unsloth Studio API. Not an entailment score."
     return "Stub phrase hits on the closed label ids. Not an entailment score."
 
 
@@ -55,6 +61,27 @@ def _load_model(spec: ModelSpec, cpu: bool) -> tuple[Tagger, float, float]:
         from autotag.gemini_backend import GeminiBackend
 
         backend = GeminiBackend()
+        started = time.perf_counter()
+        backend.load()
+        return backend, time.perf_counter() - started, 0.0
+    if spec.kind == "grok":
+        from autotag.grok_backend import GrokBackend
+
+        backend = GrokBackend()
+        started = time.perf_counter()
+        backend.load()
+        return backend, time.perf_counter() - started, 0.0
+    if spec.kind == "xai":
+        from autotag.xai_backend import XaiGrokBackend
+
+        backend = XaiGrokBackend()
+        started = time.perf_counter()
+        backend.load()
+        return backend, time.perf_counter() - started, 0.0
+    if spec.kind == "nemotron":
+        from autotag.nemotron_backend import NemotronBackend
+
+        backend = NemotronBackend()
         started = time.perf_counter()
         backend.load()
         return backend, time.perf_counter() - started, 0.0
@@ -83,10 +110,16 @@ _log: object | None = None
 
 
 def log_path_for(models: list[ModelSpec]) -> Path:
-    """output/YYMMDD_HHMMSS_<model>_run.txt. Minutes are included so names do not collide."""
+    """output/YYMMDD_HHMMSS_<model>_run.txt. A long model list uses a short name.
+
+    The full list is the first line of the log. macOS rejects a filename past 255 bytes.
+    """
     stamp = time.strftime("%y%m%d_%H%M%S")
     slug = "-".join(_safe_name(spec.name) for spec in models) or "run"
-    return Path("output") / f"{stamp}_{slug}_run.txt"
+    filename = f"{stamp}_{slug}_run.txt"
+    if len(filename.encode()) > 200:
+        filename = f"{stamp}_{len(models)}models_run.txt"
+    return Path("output") / filename
 
 
 def open_log(path: Path) -> None:
@@ -153,7 +186,12 @@ def run_selection(
         _say(f"loaded {spec.name} on {where} in {load_s:.2f}s, warmup {warmup_s:.2f}s")
         try:
             for dataset in datasets:
-                runs.append(_score_dataset(spec, backend, dataset, threshold, load_s, warmup_s, rand, seed))
+                try:
+                    runs.append(_score_dataset(spec, backend, dataset, threshold, load_s, warmup_s, rand, seed))
+                except Exception as exc:
+                    message = f"{type(exc).__name__}: {exc}"
+                    _say(f"{spec.name} on {dataset.name} failed: {message}")
+                    runs.append(_failed_run(spec, dataset, threshold, message))
         finally:
             _release(backend)
 
@@ -173,6 +211,7 @@ def run_selection(
 def _failed_run(spec: ModelSpec, dataset: DatasetSpec, threshold: float, error: str) -> dict[str, object]:
     return {
         "model": spec.name,
+        "kind": spec.kind,
         "dataset": dataset.name,
         "dataset_path": str(dataset.path),
         "model_id": spec.model_id or spec.name,
@@ -239,8 +278,27 @@ def _score_dataset(
             continue
         extract_s = time.perf_counter() - extract_started
         model_started = time.perf_counter()
-        industry = backend.propose_industry(text, threshold)
-        doc_type = backend.classify_doc_type(text, threshold)
+        try:
+            industry = backend.propose_industry(text, threshold)
+            doc_type = backend.classify_doc_type(text, threshold)
+        except Exception as exc:
+            model_s = time.perf_counter() - model_started
+            _say(f"{prefix} [Null::Null] extract {extract_s:.4f}s model {model_s:.4f}s error: {exc}")
+            documents.append(
+                {
+                    "doc_id": doc_id,
+                    "chars": len(text),
+                    "extract_s": round(extract_s, 4),
+                    "model_s": round(model_s, 4),
+                    "extract_error": None,
+                    "model_error": str(exc),
+                    "industry": None,
+                    "doc_type": None,
+                    "fixture_intent_doc_type": expected,
+                    "doc_type_matches_fixture_intent": None,
+                }
+            )
+            continue
         model_s = time.perf_counter() - model_started
         matched = None if expected is None else doc_type.label == expected
         if matched is not None:
@@ -253,6 +311,7 @@ def _score_dataset(
                 "extract_s": round(extract_s, 4),
                 "model_s": round(model_s, 4),
                 "extract_error": None,
+                "model_error": None,
                 "industry": industry.to_dict(),
                 "doc_type": doc_type.to_dict(),
                 "fixture_intent_doc_type": expected,
@@ -285,6 +344,7 @@ def _score_dataset(
         }
     return {
         "model": spec.name,
+        "kind": spec.kind,
         "dataset": dataset.name,
         "dataset_path": str(dataset.path),
         "model_id": getattr(backend, "model_id", spec.model_id or spec.name),

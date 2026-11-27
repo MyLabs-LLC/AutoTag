@@ -11,6 +11,22 @@ from pathlib import Path
 _LOADED = False
 
 
+def dotenv_value(name: str) -> str:
+    """Value of one key in the repository .env, even if the process already set it."""
+    for path in _candidates():
+        if not path.is_file():
+            continue
+        for raw in path.read_text(encoding="utf-8").splitlines():
+            line = raw.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            if key.strip() == name:
+                return value.strip().strip("'").strip('"')
+        return ""
+    return ""
+
+
 def load_env() -> None:
     global _LOADED
     if _LOADED:

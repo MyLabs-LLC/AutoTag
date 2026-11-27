@@ -13,6 +13,12 @@ from pathlib import Path
 
 from autotag.extract import SUPPORTED_SUFFIXES, is_document
 from autotag.gemini_backend import MODEL_ID as GEMINI_MODEL
+from autotag.grok_backend import MODEL_ID as CURSOR_MODEL
+from autotag.grok_backend import NAME as CURSOR_NAME
+from autotag.nemotron_backend import DEFAULT_MODEL as NEMOTRON_MODEL
+from autotag.nemotron_backend import NAME as NEMOTRON_NAME
+from autotag.xai_backend import MODEL_ID as XAI_MODEL
+from autotag.xai_backend import NAME as XAI_NAME
 from autotag.openjev_backend import FALLBACK_MODEL, PREFERRED_MODEL
 
 PACKAGE = Path(__file__).resolve().parent
@@ -42,9 +48,31 @@ MODELS: tuple[ModelSpec, ...] = (
     ModelSpec("gemini-4-hydrogen", "gemini", GEMINI_MODEL),
 )
 
+# Shared-sample comparison. Three API models, then local Nemotron, then entailment models.
+# `all` stays the four models above.
+COMPARE_MODELS: tuple[ModelSpec, ...] = (
+    ModelSpec("gemini-4-hydrogen", "gemini", GEMINI_MODEL),
+    ModelSpec(CURSOR_NAME, "grok", CURSOR_MODEL),
+    ModelSpec(XAI_NAME, "xai", XAI_MODEL),
+    ModelSpec(NEMOTRON_NAME, "nemotron", NEMOTRON_MODEL),
+    ModelSpec("deberta-v3-xsmall-nli", "openjev", "cross-encoder/nli-deberta-v3-xsmall"),
+    ModelSpec("deberta-v3-small-nli", "openjev", "cross-encoder/nli-deberta-v3-small"),
+    ModelSpec("modernbert-base-nli", "openjev", "tasksource/ModernBERT-base-nli"),
+    ModelSpec("deberta-small-long-nli", "openjev", "tasksource/deberta-small-long-nli"),
+    ModelSpec("deberta-v3-base-zeroshot", "openjev", "MoritzLaurer/deberta-v3-base-zeroshot-v2.0"),
+    ModelSpec("modernbert-large-nli", "openjev", "tasksource/ModernBERT-large-nli"),
+    ModelSpec("bart-large-mnli", "openjev", "facebook/bart-large-mnli"),
+    ModelSpec("deberta-v3-large-zeroshot", "openjev", "MoritzLaurer/deberta-v3-large-zeroshot-v2.0"),
+    ModelSpec("bge-m3-zeroshot", "openjev", "MoritzLaurer/bge-m3-zeroshot-v2.0"),
+)
+
 
 def model_names() -> list[str]:
     return [spec.name for spec in MODELS]
+
+
+def compare_model_names() -> list[str]:
+    return [spec.name for spec in COMPARE_MODELS]
 
 
 def dataset_names() -> list[str]:
@@ -70,21 +98,27 @@ def resolve_models(tokens: list[str] | None) -> list[ModelSpec]:
         if chosen and "all" in chosen and any(token != "all" for token in chosen):
             raise ValueError("Use --model all on its own, or name the models to run.")
         return list(MODELS)
-    by_name = {spec.name: spec for spec in MODELS}
+    by_name = {spec.name: spec for spec in (*MODELS, *COMPARE_MODELS)}
     resolved: list[ModelSpec] = []
     seen: set[str] = set()
     for token in chosen:
         if token in seen:
             continue
         seen.add(token)
+        if token == "compare":
+            for spec in COMPARE_MODELS:
+                if spec.name not in seen:
+                    resolved.append(spec)
+                    seen.add(spec.name)
+            continue
         if token in by_name:
             resolved.append(by_name[token])
             continue
         if "/" in token:
             resolved.append(ModelSpec(token, "openjev", token))
             continue
-        known = ", ".join(model_names())
-        raise ValueError(f"Unknown model {token!r}. Choose from: {known}, all, or a Hugging Face model id.")
+        known = ", ".join([*model_names(), *compare_model_names()])
+        raise ValueError(f"Unknown model {token!r}. Choose from: {known}, compare, all, or a Hugging Face model id.")
     return resolved
 
 

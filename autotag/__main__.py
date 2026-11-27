@@ -18,6 +18,7 @@ from pathlib import Path
 from autotag.accuracy import close_log, log_path_for, open_log, run_selection, _say
 from autotag.catalog import (
     DEFAULT_OUTPUT,
+    compare_model_names,
     dataset_names,
     model_names,
     nested_document_count,
@@ -26,10 +27,12 @@ from autotag.catalog import (
 )
 from autotag.classify import DEFAULT_THRESHOLD
 from autotag.env import load_env
+from autotag.report import render_summary, write_report
 
 
 def build_parser() -> argparse.ArgumentParser:
     models = ", ".join(model_names())
+    compare = ", ".join(compare_model_names())
     datasets = ", ".join(dataset_names())
     parser = argparse.ArgumentParser(
         prog="autotag",
@@ -42,6 +45,7 @@ def build_parser() -> argparse.ArgumentParser:
         metavar="MODEL",
         help=(
             f"Model to run. Names: {models}. "
+            f"`compare` is {compare}. "
             "Also `all`, a comma-separated list, or a Hugging Face model id. "
             "Repeat the flag to run several. Default: all."
         ),
@@ -120,8 +124,12 @@ def main(argv: list[str] | None = None) -> int:
             _say(str(exc))
             print(str(exc), file=sys.stderr)
             return 3
+        report_path = log_path.with_name(log_path.name.replace("_run.txt", "_report.html"))
+        write_report(payload, report_path)
+        _say(render_summary(payload).rstrip())
         _say(f"wrote {args.output}")
         _say(f"log {log_path}")
+        _say(f"report {report_path}")
     finally:
         close_log()
     runs = payload["runs"]
